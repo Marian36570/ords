@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Набір трусів Calvin Klein (5 шт) — Замовлення</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #fafafa;
+    margin: 0; padding: 0;
+  }
+  .container {
+    max-width: 480px;
+    margin: 40px auto;
+    background: white;
+    padding: 20px 25px 30px 25px;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  }
+  h1 {
+    text-align: center;
+    color: #222;
+    margin-bottom: 12px;
+  }
+  .product-image {
+    display: block;
+    margin: 0 auto 25px auto;
+    max-width: 100%;
+    border-radius: 12px;
+  }
+  .price-block {
+    text-align: center;
+    margin-bottom: 25px;
+  }
+  .old-price {
+    text-decoration: line-through;
+    color: #888;
+    font-size: 20px;
+  }
+  .new-price {
+    color: #e63946;
+    font-size: 32px;
+    font-weight: 700;
+    margin-left: 12px;
+  }
+  form label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #444;
+  }
+  form input, form select {
+    width: 100%;
+    padding: 11px 14px;
+    margin-bottom: 20px;
+    border: 1.6px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease;
+  }
+  form input:focus, form select:focus {
+    border-color: #e63946;
+    outline: none;
+  }
+  button {
+    width: 100%;
+    background: #e63946;
+    border: none;
+    padding: 16px 0;
+    color: white;
+    font-weight: 700;
+    font-size: 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  button:hover {
+    background: #b12733;
+  }
+  #message {
+    margin-top: 20px;
+    font-weight: 700;
+    text-align: center;
+  }
+  #message.success {
+    color: green;
+  }
+  #message.error {
+    color: red;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Набір трусів Calvin Klein (5 шт)</h1>
+  <img
+    class="product-image"
+    src="https://images.unsplash.com/photo-1556909193-9bb6f81d3d7d?auto=format&fit=crop&w=800&q=80"
+    alt="Набір трусів Calvin Klein"
+  />
+  <div class="price-block">
+    <span class="old-price">1200 грн</span>
+    <span class="new-price">1000 грн</span>
+  </div>
+
+  <form id="orderForm">
+    <label for="firstName">Ім'я</label>
+    <input type="text" id="firstName" name="firstName" required />
+
+    <label for="lastName">Прізвище</label>
+    <input type="text" id="lastName" name="lastName" required />
+
+    <label for="phone">Номер телефону</label>
+    <input type="tel" id="phone" name="phone" placeholder="+380..." pattern="[0-9+() -]{7,}" required />
+
+    <label for="city">Місто</label>
+    <input list="cities" id="city" name="city" autocomplete="off" required />
+    <datalist id="cities"></datalist>
+
+    <label for="branch">Відділення Нової пошти</label>
+    <input list="branches" id="branch" name="branch" autocomplete="off" required />
+    <datalist id="branches"></datalist>
+
+    <button type="submit">Замовити</button>
+  </form>
+  <div id="message"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+<script>
+  emailjs.init('YOUR_USER_ID'); // Замінити на свій User ID EmailJS
+
+  const orderForm = document.getElementById('orderForm');
+  const messageDiv = document.getElementById('message');
+
+  let cities = [];
+  let branches = [];
+
+  async function loadCities() {
+    try {
+      const res = await fetch('https://api.novaposhta.ua/v2.0/json/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey: 'YOUR_NP_API_KEY', // Встав свій ключ Нової пошти
+          modelName: 'Address',
+          calledMethod: 'getCities',
+          methodProperties: {}
+        })
+      });
+      const data = await res.json();
+      cities = data.data.map(c => c.Description);
+      const datalistCities = document.getElementById('cities');
+      datalistCities.innerHTML = cities.map(city => `<option value="${city}"></option>`).join('');
+    } catch(e) {
+      console.error('Помилка завантаження міст:', e);
+    }
+  }
+
+  async function loadBranches(city) {
+    if (!city) return;
+    try {
+      const res = await fetch('https://api.novaposhta.ua/v2.0/json/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey: 'YOUR_NP_API_KEY', // Встав свій ключ Нової пошти
+          modelName: 'AddressGeneral',
+          calledMethod: 'getWarehouses',
+          methodProperties: { CityName: city }
+        })
+      });
+      const data = await res.json();
+      branches = data.data.map(b => b.Description);
+      const datalistBranches = document.getElementById('branches');
+      datalistBranches.innerHTML = branches.map(branch => `<option value="${branch}"></option>`).join('');
+    } catch(e) {
+      console.error('Помилка завантаження відділень:', e);
+    }
+  }
+
+  document.getElementById('city').addEventListener('input', e => {
+    loadBranches(e.target.value);
+  });
+
+  orderForm.addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    const templateParams = {
+      firstName: orderForm.firstName.value,
+      lastName: orderForm.lastName.value,
+      phone: orderForm.phone.value,
+      city: orderForm.city.value,
+      branch: orderForm.branch.value,
+      product: 'Набір трусів Calvin Klein (5 шт)',
+      price: '1000 грн (зі знижкою)'
+    };
+
+    emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', templateParams)
+      .then(() => {
+        messageDiv.textContent = 'Дякуємо! Ваше замовлення прийнято.';
+        messageDiv.className = 'success';
+        orderForm.reset();
+      })
+      .catch(() => {
+        messageDiv.textContent = 'Сталася помилка. Спробуйте пізніше.';
+        messageDiv.className = 'error';
+      });
+  });
+
+  loadCities();
+</script>
+
+</body>
+</html>
